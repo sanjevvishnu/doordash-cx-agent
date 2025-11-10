@@ -14,6 +14,20 @@ import {
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
+// Declare custom element type
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'elevenlabs-convai': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          'agent-id': string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 type IssueType = "dasher" | "merchant" | "customer";
 
 interface Conversation {
