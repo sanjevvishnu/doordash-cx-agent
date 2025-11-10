@@ -14,19 +14,6 @@ import {
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
-// Declare custom element type
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'elevenlabs-convai': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          'agent-id': string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
 
 type IssueType = "dasher" | "merchant" | "customer";
 
@@ -129,7 +116,11 @@ export default function Home() {
               <CardTitle>Talk to Support Agent</CardTitle>
             </CardHeader>
             <CardContent className="flex justify-center">
-              <elevenlabs-convai agent-id="agent_7501k9q891d5e6psasy04g4ccs8e"></elevenlabs-convai>
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: '<elevenlabs-convai agent-id="agent_7501k9q891d5e6psasy04g4ccs8e"></elevenlabs-convai>'
+                }}
+              />
             </CardContent>
           </Card>
         </div>
