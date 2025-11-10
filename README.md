@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DoorDash CX Agent Dashboard
 
-## Getting Started
+AI-powered voice agent for intelligent support routing built with ElevenLabs Conversational AI.
 
-First, run the development server:
+## Features
 
+- 🎙️ **Voice-First Interface** - Embedded ElevenLabs voice agent widget
+- 🔍 **Automatic Classification** - AI classifies issues as Dasher, Merchant, or Customer
+- 📊 **Conversation Dashboard** - View all conversations with transcripts and metadata
+- 🎯 **Real-time Routing** - Direct users to the appropriate support team
+
+## Setup
+
+1. **Clone the repository**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/sanjevvishnu/doordash-cx-agent.git
+cd doordash-cx-agent
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Install dependencies**
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Configure environment variables**
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Add your ElevenLabs API key to `.env.local`:
+```
+ELEVENLABS_API_KEY=your_api_key_here
+```
 
-## Learn More
+4. **Run the development server**
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ElevenLabs Agent Setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1. Create Agent
+Go to https://elevenlabs.io/app/conversational-ai and create a new agent.
 
-## Deploy on Vercel
+### 2. Configure System Prompt
+```
+You are a DoorDash support triage agent. Your job is to quickly identify if the caller's issue relates to:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. DASHER - Delivery drivers (payment issues, account problems, app issues)
+2. MERCHANT - Restaurants/stores (menu updates, tablet problems, payouts)
+3. CUSTOMER - People ordering food (refunds, missing items, order tracking)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ask 1-2 clarifying questions to understand their role and issue.
+Once confident, call the setClassification tool with the issue type.
+Keep conversations under 30 seconds. Be empathetic and professional.
+```
+
+### 3. Add Classification Tool (Webhook)
+- **Tool Name**: `setClassification`
+- **URL**: `https://your-deployment-url.vercel.app/api/classification`
+- **Method**: POST
+- **Request Body Schema**:
+  - `type` (string, required): The issue type (dasher, merchant, or customer)
+
+### 4. Update Agent ID
+Replace the agent ID in `app/page.tsx` line 118:
+```tsx
+<elevenlabs-convai agent-id="your_agent_id_here"></elevenlabs-convai>
+```
+
+## API Endpoints
+
+### POST /api/classification
+Receives classification webhook from ElevenLabs agent.
+
+**Request Body:**
+```json
+{
+  "type": "merchant"
+}
+```
+
+### GET /api/conversations
+Lists all conversations from ElevenLabs.
+
+### GET /api/conversations?id={conversation_id}
+Gets detailed information about a specific conversation including transcript.
+
+## Tech Stack
+
+- **Next.js 16** - React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI components
+- **ElevenLabs** - Conversational AI platform
+
+## Deployment
+
+### Deploy to Vercel
+
+```bash
+vercel
+```
+
+Or connect your GitHub repository to Vercel dashboard.
+
+**Environment Variables:**
+- `ELEVENLABS_API_KEY` - Your ElevenLabs API key
+
+## Demo
+
+Built for DoorDash CX team to demonstrate AI-powered support triage capabilities.
+
+## License
+
+MIT

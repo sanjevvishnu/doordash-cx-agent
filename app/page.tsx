@@ -1,60 +1,98 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { Phone, PhoneOff, Mic, MicOff } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 
-type IssueType = "dasher" | "merchant" | "customer" | null;
+type IssueType = "dasher" | "merchant" | "customer";
 
-interface Classification {
-  dasher: number;
-  merchant: number;
-  customer: number;
+interface Conversation {
+  conversation_id: string;
+  agent_id: string;
+  status: string;
+  metadata?: {
+    classification?: IssueType;
+  };
+  transcript?: Array<{
+    role: string;
+    message: string;
+  }>;
+  created_at?: string;
 }
 
 export default function Home() {
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [transcript, setTranscript] = useState<string[]>([]);
-  const [classification, setClassification] = useState<Classification>({
-    dasher: 0,
-    merchant: 0,
-    customer: 0,
-  });
-  const [finalIssueType, setFinalIssueType] = useState<IssueType>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
 
-  const startCall = () => {
-    setIsCallActive(true);
-    setTranscript([]);
-    setClassification({ dasher: 0, merchant: 0, customer: 0 });
-    setFinalIssueType(null);
-    // ElevenLabs integration will go here
+  const fetchConversations = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/conversations');
+      const data = await response.json();
+
+      if (data.conversations) {
+        setConversations(data.conversations);
+      }
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const endCall = () => {
-    setIsCallActive(false);
-    setIsSpeaking(false);
-    // Determine final classification
-    const maxType = Object.entries(classification).reduce((a, b) =>
-      b[1] > a[1] ? b : a
-    )[0] as IssueType;
-    setFinalIssueType(maxType);
+  const fetchConversationDetails = async (id: string) => {
+    try {
+      const response = await fetch(`/api/conversations?id=${id}`);
+      const data = await response.json();
+      setSelectedConversation(data);
+    } catch (error) {
+      console.error('Error fetching conversation details:', error);
+    }
   };
 
-  const getClassificationColor = (type: string) => {
-    if (type === "dasher") return "bg-blue-500";
-    if (type === "merchant") return "bg-purple-500";
-    if (type === "customer") return "bg-green-500";
-    return "bg-gray-300";
+  useEffect(() => {
+    fetchConversations();
+  }, []);
+
+  const getClassificationBadge = (type?: IssueType) => {
+    if (!type) return <Badge variant="outline">Unknown</Badge>;
+
+    const colors = {
+      dasher: "bg-blue-500 text-white",
+      merchant: "bg-purple-500 text-white",
+      customer: "bg-green-500 text-white",
+    };
+
+    return (
+      <Badge className={colors[type]}>
+        {type.toUpperCase()}
+      </Badge>
+    );
   };
 
-  const getIssueTypeBadgeVariant = (type: IssueType) => {
-    if (type === "dasher") return "default";
-    if (type === "merchant") return "secondary";
-    if (type === "customer") return "outline";
-    return "default";
+  const getStatusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      done: "bg-green-100 text-green-800",
+      in_progress: "bg-yellow-100 text-yellow-800",
+      initiated: "bg-blue-100 text-blue-800",
+    };
+
+    return (
+      <Badge variant="outline" className={colors[status] || ""}>
+        {status}
+      </Badge>
+    );
   };
 
   return (
@@ -63,196 +101,145 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            DoorDash Support Triage
+            DoorDash CX Agent Dashboard
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             AI-powered voice agent for intelligent support routing
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Main Call Interface */}
-          {!isCallActive && !finalIssueType && (
-            <Card className="border-2">
-              <CardHeader className="text-center">
-                <CardTitle>Welcome to DoorDash Support</CardTitle>
-                <CardDescription>
-                  Start a call and describe your issue. Our AI agent will classify and route your request to the right team.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center gap-4">
-                <div className="flex flex-col items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <Badge variant="outline" className="bg-blue-50">Dasher Issues</Badge>
-                  <Badge variant="outline" className="bg-purple-50">Merchant Issues</Badge>
-                  <Badge variant="outline" className="bg-green-50">Customer Issues</Badge>
-                </div>
-                <Button
-                  onClick={startCall}
-                  size="lg"
-                  className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
-                >
-                  <Phone className="w-5 h-5" />
-                  Start Support Call
-                </Button>
-                <p className="text-xs text-gray-500">Microphone access required</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Active Call Interface */}
-          {isCallActive && (
-            <>
-              {/* Voice Indicator */}
-              <Card>
-                <CardContent className="py-8">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className={`w-24 h-24 rounded-full flex items-center justify-center ${
-                      isSpeaking
-                        ? "bg-orange-500 animate-pulse"
-                        : "bg-gray-300"
-                    }`}>
-                      {isSpeaking ? (
-                        <Mic className="w-12 h-12 text-white" />
-                      ) : (
-                        <MicOff className="w-12 h-12 text-gray-600" />
-                      )}
-                    </div>
-                    <p className="text-lg font-medium">
-                      {isSpeaking ? "Agent is listening..." : "Speak now"}
-                    </p>
-                    <Button
-                      onClick={endCall}
-                      variant="destructive"
-                      className="gap-2"
-                    >
-                      <PhoneOff className="w-4 h-4" />
-                      End Call
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Real-time Classification */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Real-time Classification</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {Object.entries(classification).map(([type, probability]) => (
-                    <div key={type} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="capitalize font-medium">{type} Issue</span>
-                        <span className="text-gray-600">{probability}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-300 ${getClassificationColor(type)}`}
-                          style={{ width: `${probability}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Live Transcript */}
-              {transcript.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Conversation</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {transcript.map((line, index) => (
-                        <p key={index} className="text-sm text-gray-700 dark:text-gray-300">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          )}
-
-          {/* Results After Call */}
-          {!isCallActive && finalIssueType && (
-            <>
-              <Card className="border-2 border-orange-500">
-                <CardHeader className="text-center">
-                  <CardTitle>Issue Classified</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center gap-6">
-                  <Badge
-                    variant={getIssueTypeBadgeVariant(finalIssueType)}
-                    className="text-2xl py-2 px-6 uppercase"
-                  >
-                    {finalIssueType} Issue
-                  </Badge>
-
-                  <div className="w-full space-y-4">
-                    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <h3 className="font-semibold mb-2">Next Steps:</h3>
-                      <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-                        {finalIssueType === "dasher" && (
-                          <>
-                            <li>• Connecting you to Dasher Support Team</li>
-                            <li>• Average wait time: 2-3 minutes</li>
-                            <li>• Have your Dasher ID ready</li>
-                          </>
-                        )}
-                        {finalIssueType === "merchant" && (
-                          <>
-                            <li>• Routing to Merchant Success Team</li>
-                            <li>• Average wait time: 3-5 minutes</li>
-                            <li>• Have your Store ID ready</li>
-                          </>
-                        )}
-                        {finalIssueType === "customer" && (
-                          <>
-                            <li>• Transferring to Customer Support</li>
-                            <li>• Average wait time: 1-2 minutes</li>
-                            <li>• Have your Order ID ready if applicable</li>
-                          </>
-                        )}
-                      </ul>
-                    </div>
-
-                    {transcript.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-base">Call Transcript</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-2 max-h-48 overflow-y-auto text-sm">
-                            {transcript.map((line, index) => (
-                              <p key={index} className="text-gray-700 dark:text-gray-300">
-                                {line}
-                              </p>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-
-                  <Button
-                    onClick={() => {
-                      setFinalIssueType(null);
-                      setTranscript([]);
-                      setClassification({ dasher: 0, merchant: 0, customer: 0 });
-                    }}
-                    className="w-full bg-orange-600 hover:bg-orange-700"
-                  >
-                    Start New Call
-                  </Button>
-                </CardContent>
-              </Card>
-            </>
-          )}
+        {/* ElevenLabs Widget */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Talk to Support Agent</CardTitle>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <elevenlabs-convai agent-id="agent_7501k9q891d5e6psasy04g4ccs8e"></elevenlabs-convai>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Footer Info */}
+        {/* Conversations Table */}
+        <div className="max-w-6xl mx-auto">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Recent Conversations</CardTitle>
+              <Button
+                onClick={fetchConversations}
+                disabled={loading}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {conversations.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No conversations yet. Start a call to see data here.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Conversation ID</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Classification</TableHead>
+                      <TableHead>Created At</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {conversations.map((conv) => (
+                      <TableRow key={conv.conversation_id}>
+                        <TableCell className="font-mono text-xs">
+                          {conv.conversation_id.substring(0, 20)}...
+                        </TableCell>
+                        <TableCell>{getStatusBadge(conv.status)}</TableCell>
+                        <TableCell>
+                          {getClassificationBadge(conv.metadata?.classification)}
+                        </TableCell>
+                        <TableCell>
+                          {conv.created_at
+                            ? new Date(conv.created_at).toLocaleString()
+                            : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            onClick={() => fetchConversationDetails(conv.conversation_id)}
+                            variant="ghost"
+                            size="sm"
+                          >
+                            View Details
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Conversation Details Modal */}
+        {selectedConversation && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>Conversation Details</CardTitle>
+                    <p className="text-sm text-gray-500 mt-1 font-mono">
+                      {selectedConversation.conversation_id}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setSelectedConversation(null)}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  {getStatusBadge(selectedConversation.status)}
+                  {getClassificationBadge(selectedConversation.metadata?.classification)}
+                </div>
+
+                {selectedConversation.transcript && selectedConversation.transcript.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Transcript:</h3>
+                    <div className="space-y-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                      {selectedConversation.transcript.map((turn, idx) => (
+                        <div key={idx} className="text-sm">
+                          <span className="font-medium capitalize">{turn.role}:</span>{' '}
+                          {turn.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedConversation.metadata && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Metadata:</h3>
+                    <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto">
+                      {JSON.stringify(selectedConversation.metadata, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Footer */}
         <div className="text-center mt-8 text-sm text-gray-600 dark:text-gray-400">
           <p>Demo built for DoorDash CX • Powered by ElevenLabs AI</p>
         </div>
