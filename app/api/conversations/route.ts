@@ -32,9 +32,10 @@ export async function GET(request: Request) {
       const data = await response.json();
       return NextResponse.json(data);
     } else {
-      // List all conversations
+      // List conversations for this specific agent only
+      const agentId = 'agent_7701k9qkzfhwfsntakrxdn982sp2';
       const response = await fetch(
-        'https://api.elevenlabs.io/v1/convai/conversations?page_size=50',
+        `https://api.elevenlabs.io/v1/convai/conversations?agent_id=${agentId}&page_size=50`,
         {
           headers: {
             'xi-api-key': apiKey,
