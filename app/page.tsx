@@ -15,20 +15,19 @@ import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
 
-type IssueType = "dasher" | "merchant" | "customer";
 
 interface Conversation {
-  conversation_id: string;
-  agent_id: string;
+  id: string;
+  customer_name: string | null;
+  agent_name: string | null;
   status: string;
-  metadata?: {
-    classification?: IssueType;
-  };
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string;
   transcript?: Array<{
     role: string;
     message: string;
   }>;
-  created_at?: string;
 }
 
 export default function Home() {
@@ -66,27 +65,11 @@ export default function Home() {
     fetchConversations();
   }, []);
 
-  const getClassificationBadge = (type?: IssueType) => {
-    if (!type) return <Badge variant="outline">Unknown</Badge>;
-
-    const colors = {
-      dasher: "bg-blue-500 text-white",
-      merchant: "bg-purple-500 text-white",
-      customer: "bg-green-500 text-white",
-    };
-
-    return (
-      <Badge className={colors[type]}>
-        {type.toUpperCase()}
-      </Badge>
-    );
-  };
-
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      done: "bg-green-100 text-green-800",
-      in_progress: "bg-yellow-100 text-yellow-800",
-      initiated: "bg-blue-100 text-blue-800",
+      active: "bg-yellow-100 text-yellow-800",
+      completed: "bg-green-100 text-green-800",
+      escalated: "bg-red-100 text-red-800",
     };
 
     return (
@@ -150,31 +133,31 @@ export default function Home() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Conversation ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Agent</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Classification</TableHead>
-                      <TableHead>Created At</TableHead>
+                      <TableHead>Started At</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {conversations.map((conv) => (
-                      <TableRow key={conv.conversation_id}>
-                        <TableCell className="font-mono text-xs">
-                          {conv.conversation_id.substring(0, 20)}...
+                      <TableRow key={conv.id}>
+                        <TableCell>
+                          {conv.customer_name || 'Anonymous'}
+                        </TableCell>
+                        <TableCell>
+                          {conv.agent_name || 'N/A'}
                         </TableCell>
                         <TableCell>{getStatusBadge(conv.status)}</TableCell>
                         <TableCell>
-                          {getClassificationBadge(conv.metadata?.classification)}
-                        </TableCell>
-                        <TableCell>
-                          {conv.created_at
-                            ? new Date(conv.created_at).toLocaleString()
+                          {conv.started_at
+                            ? new Date(conv.started_at).toLocaleString()
                             : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Button
-                            onClick={() => fetchConversationDetails(conv.conversation_id)}
+                            onClick={() => fetchConversationDetails(conv.id)}
                             variant="ghost"
                             size="sm"
                           >
@@ -198,8 +181,8 @@ export default function Home() {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle>Conversation Details</CardTitle>
-                    <p className="text-sm text-gray-500 mt-1 font-mono">
-                      {selectedConversation.conversation_id}
+                    <p className="text-sm text-gray-500 mt-1">
+                      {selectedConversation.customer_name || 'Anonymous'} • {selectedConversation.agent_name || 'N/A'}
                     </p>
                   </div>
                   <Button
@@ -214,7 +197,6 @@ export default function Home() {
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   {getStatusBadge(selectedConversation.status)}
-                  {getClassificationBadge(selectedConversation.metadata?.classification)}
                 </div>
 
                 {selectedConversation.transcript && selectedConversation.transcript.length > 0 && (
@@ -228,15 +210,6 @@ export default function Home() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {selectedConversation.metadata && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Metadata:</h3>
-                    <pre className="text-xs bg-gray-50 dark:bg-gray-800 p-4 rounded-lg overflow-x-auto">
-                      {JSON.stringify(selectedConversation.metadata, null, 2)}
-                    </pre>
                   </div>
                 )}
               </CardContent>
