@@ -72,6 +72,10 @@ export async function GET(request: Request) {
       );
 
       if (!response.ok) {
+        // If 404, return empty conversations list
+        if (response.status === 404) {
+          return NextResponse.json({ conversations: [] });
+        }
         throw new Error(`ElevenLabs API error: ${response.status}`);
       }
 
@@ -80,9 +84,7 @@ export async function GET(request: Request) {
     }
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch conversations' },
-      { status: 500 }
-    );
+    // Return empty list instead of error for better UX
+    return NextResponse.json({ conversations: [] });
   }
 }
