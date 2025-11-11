@@ -63,6 +63,29 @@ export default function Home() {
 
   useEffect(() => {
     fetchConversations();
+
+    // Listen for conversation end events from ElevenLabs widget
+    const handleConversationEnd = async (event: any) => {
+      console.log('Conversation ended:', event.detail);
+      const conversationId = event.detail?.conversationId;
+
+      if (conversationId) {
+        // Fetch and save the conversation after it ends
+        try {
+          await fetch(`/api/conversations?id=${conversationId}`);
+          // Refresh the conversations list
+          setTimeout(() => fetchConversations(), 2000);
+        } catch (error) {
+          console.error('Error saving conversation:', error);
+        }
+      }
+    };
+
+    window.addEventListener('elevenlabs:conversation-ended', handleConversationEnd);
+
+    return () => {
+      window.removeEventListener('elevenlabs:conversation-ended', handleConversationEnd);
+    };
   }, []);
 
   const getStatusBadge = (status: string) => {
@@ -100,6 +123,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="flex justify-center">
               <div
+                id="elevenlabs-widget"
                 dangerouslySetInnerHTML={{
                   __html: '<elevenlabs-convai agent-id="agent_7701k9qkzfhwfsntakrxdn982sp2"></elevenlabs-convai>'
                 }}
