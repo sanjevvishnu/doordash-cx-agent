@@ -9,19 +9,26 @@ const supabase = createClient(
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log('Conversation webhook received:', JSON.stringify(body, null, 2));
 
-    // ElevenLabs sends conversation data in webhook
+    // ElevenLabs conversation.ended webhook structure
     const {
       conversation_id,
       agent_id,
       status,
       transcript,
-      metadata
+      metadata,
+      analysis
     } = body;
+
+    if (!conversation_id) {
+      console.error('No conversation_id in webhook');
+      return NextResponse.json({ success: false, error: 'No conversation_id' });
+    }
 
     // Extract customer/agent info from metadata if available
     const customerName = metadata?.customer_name || 'Anonymous';
-    const agentName = metadata?.agent_name || 'AI Agent';
+    const agentName = 'DoorDash CX Agent';
 
     // Insert conversation
     const { data: conversation, error: convError } = await supabase
@@ -29,21 +36,26 @@ export async function POST(request: Request) {
       .insert({
         customer_name: customerName,
         agent_name: agentName,
-        status: status === 'done' ? 'completed' : 'active',
-        started_at: new Date().toISOString(),
-        ended_at: status === 'done' ? new Date().toISOString() : null
+        status: 'completed',
+        started_at: metadata?.start_time || new Date().toISOString(),
+        ended_at: new Date().toISOString()
       })
       .select()
       .single();
 
-    if (convError) throw convError;
+    if (convError) {
+      console.error('Error saving conversation:', convError);
+      throw convError;
+    }
+
+    console.log('✓ Conversation saved to Supabase:', conversation.id);
 
     // Insert messages from transcript
     if (transcript && transcript.length > 0) {
       const messagesToInsert = transcript.map((msg: any) => ({
         conversation_id: conversation.id,
-        role: msg.role,
-        content: msg.message || msg.content,
+        role: msg.role || 'user',
+        content: msg.message || msg.content || msg.text || '',
         timestamp: msg.timestamp || new Date().toISOString()
       }));
 
@@ -51,14 +63,19 @@ export async function POST(request: Request) {
         .from('messages')
         .insert(messagesToInsert);
 
-      if (msgError) throw msgError;
+      if (msgError) {
+        console.error('Error saving messages:', msgError);
+        throw msgError;
+      }
+
+      console.log(`✓ Saved ${messagesToInsert.length} messages`);
     }
 
-    return NextResponse.json({ success: true, conversation });
+    return NextResponse.json({ success: true, conversation_id: conversation.id });
   } catch (error) {
     console.error('Error processing webhook:', error);
     return NextResponse.json(
-      { error: 'Failed to process webhook' },
+      { success: false, error: 'Failed to process webhook' },
       { status: 500 }
     );
   }
