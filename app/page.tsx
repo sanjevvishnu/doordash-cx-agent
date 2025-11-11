@@ -51,8 +51,23 @@ export default function Home() {
   // Calculate KPIs
   const totalConversations = conversations.length;
   const completedConversations = conversations.filter(c => c.status === 'completed').length;
-  const activeConversations = conversations.filter(c => c.status === 'active').length;
-  const avgDuration = conversations.length > 0
+  const escalatedConversations = conversations.filter(c => c.status === 'escalated').length;
+
+  // Query success rate (non-escalated / total)
+  const querySuccessRate = totalConversations > 0
+    ? ((totalConversations - escalatedConversations) / totalConversations) * 100
+    : 0;
+
+  // Tickets resolved (completed conversations)
+  const ticketsResolved = completedConversations;
+
+  // Resolution rate (completed / total)
+  const resolutionRate = totalConversations > 0
+    ? (completedConversations / totalConversations) * 100
+    : 0;
+
+  // Average handling time
+  const avgHandlingTime = conversations.length > 0
     ? conversations
         .filter(c => c.started_at && c.ended_at)
         .reduce((acc, c) => {
@@ -200,74 +215,61 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Conversations</CardTitle>
+                    <CardTitle className="text-sm font-medium">Tickets Resolved</CardTitle>
                     <MessageSquare className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{totalConversations}</div>
-                    <p className="text-xs text-muted-foreground">All time</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{completedConversations}</div>
+                    <div className="text-2xl font-bold">{ticketsResolved}</div>
                     <p className="text-xs text-muted-foreground">
-                      {totalConversations > 0
-                        ? `${Math.round((completedConversations / totalConversations) * 100)}% completion rate`
-                        : 'No data'}
+                      {totalConversations > 0 ? `of ${totalConversations} total` : 'No data'}
                     </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Active</CardTitle>
-                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-sm font-medium">Query Success Rate</CardTitle>
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{activeConversations}</div>
-                    <p className="text-xs text-muted-foreground">In progress</p>
+                    <div className="text-2xl font-bold">
+                      {totalConversations > 0 ? `${Math.round(querySuccessRate)}%` : 'N/A'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Non-escalated queries
+                    </p>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
+                    <CardTitle className="text-sm font-medium">Resolution Rate</CardTitle>
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {totalConversations > 0 ? `${Math.round(resolutionRate)}%` : 'N/A'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Successfully completed</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Avg Handling Time</CardTitle>
                     <BarChart3 className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {avgDuration > 0 ? `${Math.round(avgDuration)}s` : 'N/A'}
+                      {avgHandlingTime > 0 ? `${Math.round(avgHandlingTime)}s` : 'N/A'}
                     </div>
                     <p className="text-xs text-muted-foreground">Per conversation</p>
                   </CardContent>
                 </Card>
               </div>
 
-        {/* ElevenLabs Widget */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Talk to Support Agent</CardTitle>
-            </CardHeader>
-            <CardContent className="flex justify-center">
-              <div
-                id="elevenlabs-widget"
-                dangerouslySetInnerHTML={{
-                  __html: '<elevenlabs-convai agent-id="agent_7701k9qkzfhwfsntakrxdn982sp2"></elevenlabs-convai>'
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Conversations Table */}
-        <div className="max-w-6xl mx-auto">
+              {/* Conversations Table */}
+              <div className="w-full">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Recent Conversations</CardTitle>
@@ -332,7 +334,7 @@ export default function Home() {
               )}
             </CardContent>
           </Card>
-        </div>
+              </div>
 
               {/* Conversation Details Modal */}
               {selectedConversation && (
