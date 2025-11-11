@@ -17,13 +17,14 @@ import { RefreshCw } from "lucide-react";
 
 
 interface Conversation {
-  id: string;
+  id?: string;
+  conversation_id?: string;
   customer_name: string | null;
   agent_name: string | null;
   status: string;
   started_at: string | null;
   ended_at: string | null;
-  created_at: string;
+  created_at?: string;
   transcript?: Array<{
     role: string;
     message: string;
@@ -165,31 +166,34 @@ export default function Home() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {conversations.map((conv) => (
-                      <TableRow key={conv.id}>
-                        <TableCell>
-                          {conv.customer_name || 'Anonymous'}
-                        </TableCell>
-                        <TableCell>
-                          {conv.agent_name || 'N/A'}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(conv.status)}</TableCell>
-                        <TableCell>
-                          {conv.started_at
-                            ? new Date(conv.started_at).toLocaleString()
-                            : 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            onClick={() => fetchConversationDetails(conv.id)}
-                            variant="ghost"
-                            size="sm"
-                          >
-                            View Details
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {conversations.map((conv) => {
+                      const conversationId = conv.conversation_id || conv.id || '';
+                      return (
+                        <TableRow key={conversationId}>
+                          <TableCell>
+                            {conv.customer_name || 'Anonymous'}
+                          </TableCell>
+                          <TableCell>
+                            {conv.agent_name || 'N/A'}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(conv.status)}</TableCell>
+                          <TableCell>
+                            {conv.started_at
+                              ? new Date(conv.started_at).toLocaleString()
+                              : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              onClick={() => fetchConversationDetails(conversationId)}
+                              variant="ghost"
+                              size="sm"
+                            >
+                              View Details
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
