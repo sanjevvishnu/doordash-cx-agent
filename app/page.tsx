@@ -11,8 +11,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, LayoutDashboard, MessageSquare, BarChart3, Settings, Phone } from "lucide-react";
 
 
 
@@ -35,6 +47,20 @@ export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+
+  // Calculate KPIs
+  const totalConversations = conversations.length;
+  const completedConversations = conversations.filter(c => c.status === 'completed').length;
+  const activeConversations = conversations.filter(c => c.status === 'active').length;
+  const avgDuration = conversations.length > 0
+    ? conversations
+        .filter(c => c.started_at && c.ended_at)
+        .reduce((acc, c) => {
+          const start = new Date(c.started_at!).getTime();
+          const end = new Date(c.ended_at!).getTime();
+          return acc + (end - start) / 1000; // in seconds
+        }, 0) / conversations.filter(c => c.started_at && c.ended_at).length
+    : 0;
 
   const fetchConversations = async () => {
     setLoading(true);
@@ -104,17 +130,124 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            DoorDash CX Agent Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            AI-powered voice agent for intelligent support routing
-          </p>
-        </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        {/* Sidebar */}
+        <Sidebar>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>DoorDash CX Agent</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="/">
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span>Dashboard</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="#conversations">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Conversations</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="#analytics">
+                        <BarChart3 className="w-4 h-4" />
+                        <span>Analytics</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="#agent">
+                        <Phone className="w-4 h-4" />
+                        <span>Test Agent</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="#settings">
+                        <Settings className="w-4 h-4" />
+                        <span>Settings</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col">
+          <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6">
+            <SidebarTrigger />
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold">DoorDash CX Agent Dashboard</h1>
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-y-auto bg-gradient-to-br from-orange-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
+            <div className="container mx-auto px-4 py-8">
+              {/* KPI Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Conversations</CardTitle>
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{totalConversations}</div>
+                    <p className="text-xs text-muted-foreground">All time</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{completedConversations}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {totalConversations > 0
+                        ? `${Math.round((completedConversations / totalConversations) * 100)}% completion rate`
+                        : 'No data'}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active</CardTitle>
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{activeConversations}</div>
+                    <p className="text-xs text-muted-foreground">In progress</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {avgDuration > 0 ? `${Math.round(avgDuration)}s` : 'N/A'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Per conversation</p>
+                  </CardContent>
+                </Card>
+              </div>
 
         {/* ElevenLabs Widget */}
         <div className="max-w-4xl mx-auto mb-8">
@@ -201,55 +334,58 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* Conversation Details Modal */}
-        {selectedConversation && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <Card className="max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>Conversation Details</CardTitle>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {selectedConversation.customer_name || 'Anonymous'} • {selectedConversation.agent_name || 'N/A'}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => setSelectedConversation(null)}
-                    variant="ghost"
-                    size="sm"
-                  >
-                    Close
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  {getStatusBadge(selectedConversation.status)}
-                </div>
-
-                {selectedConversation.transcript && selectedConversation.transcript.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Transcript:</h3>
-                    <div className="space-y-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                      {selectedConversation.transcript.map((turn, idx) => (
-                        <div key={idx} className="text-sm">
-                          <span className="font-medium capitalize">{turn.role}:</span>{' '}
-                          {turn.message}
+              {/* Conversation Details Modal */}
+              {selectedConversation && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                  <Card className="max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>Conversation Details</CardTitle>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {selectedConversation.customer_name || 'Anonymous'} • {selectedConversation.agent_name || 'N/A'}
+                          </p>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                        <Button
+                          onClick={() => setSelectedConversation(null)}
+                          variant="ghost"
+                          size="sm"
+                        >
+                          Close
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex gap-2">
+                        {getStatusBadge(selectedConversation.status)}
+                      </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-600 dark:text-gray-400">
-          <p>Demo built for DoorDash CX • Powered by ElevenLabs AI</p>
+                      {selectedConversation.transcript && selectedConversation.transcript.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold mb-2">Transcript:</h3>
+                          <div className="space-y-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                            {selectedConversation.transcript.map((turn, idx) => (
+                              <div key={idx} className="text-sm">
+                                <span className="font-medium capitalize">{turn.role}:</span>{' '}
+                                {turn.message}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Footer */}
+              <div className="text-center mt-8 text-sm text-gray-600 dark:text-gray-400">
+                <p>Demo built for DoorDash CX • Powered by ElevenLabs AI</p>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
